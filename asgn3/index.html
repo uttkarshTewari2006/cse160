@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assignment 3: Creating a Virtual World</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body onload="main()">
+  <main class="page">
+    <h2>Assignment 3: Creating a Virtual World</h2>
+    <p>Use <strong>W A S D</strong> to move, <strong>Q E</strong> to turn, <strong>R F</strong> to move vertically, and drag the mouse to look around.</p>
+    <p><strong>Story goal:</strong> find the lost sheep. Use <strong>C</strong> to add a block in front of you and <strong>X</strong> to remove one.</p>
+    <p class="status-line"><strong>Goal Status:</strong> <span id="goalStatus">Searching for sheep...</span></p>
+    <canvas id="webgl" width="900" height="600" tabindex="0">
+      Please use a browser that supports canvas.
+    </canvas>
+    <p class="status-line"><strong>Status:</strong> <span id="status">Loading texture...</span></p>
+    <div class="control-row">
+      <button id="forwardButton" type="button">W Forward</button>
+      <button id="leftButton" type="button">A Left</button>
+      <button id="backButton" type="button">S Back</button>
+      <button id="rightButton" type="button">D Right</button>
+      <button id="turnLeftButton" type="button">Q Turn Left</button>
+      <button id="turnRightButton" type="button">E Turn Right</button>
+      <button id="upButton" type="button">R Up</button>
+      <button id="downButton" type="button">F Down</button>
+      <button id="lookUpButton" type="button">Look Up</button>
+      <button id="lookDownButton" type="button">Look Down</button>
+      <button id="addBlockButton" type="button">C Add Block</button>
+      <button id="removeBlockButton" type="button">X Remove Block</button>
+    </div>
+    <p class="status-line"><strong>Input:</strong> <span id="inputDebug">Waiting for input...</span></p>
+  </main>
+
+  <script src="./lib/webgl-utils.js"></script>
+  <script src="./lib/webgl-debug.js"></script>
+  <script src="./lib/cuon-utils.js"></script>
+  <script src="./Matrix4.js"></script>
+  <script src="./Cube.js"></script>
+  <script src="./camera.js"></script>
+  <script src="./World.js"></script>
+</body>
+</html>

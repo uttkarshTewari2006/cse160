@@ -1,0 +1,44 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  color: #111;
+  background: #fff;
+}
+
+.page {
+  max-width: 980px;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+p {
+  margin-top: 0;
+  line-height: 1.5;
+}
+
+canvas {
+  display: block;
+  margin-bottom: 16px;
+  border: 1px solid black;
+  background: #8fbeff;
+}
+
+.status-line {
+  margin: 12px 0;
+}
+
+.control-row {
+  margin: 12px 0;
+}
+
+.control-row button {
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
