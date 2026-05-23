@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assignment 4: Lighting and OBJ</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body onload="main()">
+  <main class="page">
+    <h2>Assignment 4: Lighting and OBJ</h2>
+    <p class="ta-note"><strong>Note to TA:</strong> This submission was built from scratch, so it uses a small lit scene instead of reusing the previous animal/world project. The scene includes the required cube, multiple spheres, point light, spotlight, normal visualization, Phong shading, and loaded OBJ model.</p>
+    <p>Use <strong>W A S D</strong> to move and <strong>Q E</strong> to turn the camera. The point light can orbit or be moved with sliders, and the spotlight follows the camera like a flashlight.</p>
+    <canvas id="webgl" width="900" height="600" tabindex="0">
+      Please use a browser that supports canvas.
+    </canvas>
+    <div class="control-row">
+      <button id="forwardButton" type="button">W Forward</button>
+      <button id="leftButton" type="button">A Left</button>
+      <button id="backButton" type="button">S Back</button>
+      <button id="rightButton" type="button">D Right</button>
+      <button id="turnLeftButton" type="button">Q Turn Left</button>
+      <button id="turnRightButton" type="button">E Turn Right</button>
+    </div>
+    <div class="control-row">
+      <button id="toggleLightingButton" type="button">Lighting: On</button>
+      <button id="toggleNormalsButton" type="button">Show Normals: Off</button>
+      <button id="togglePointLightButton" type="button">Point Light: On</button>
+      <button id="toggleSpotLightButton" type="button">Spot Light: On</button>
+      <button id="toggleLightMotionButton" type="button">Point Orbit: On</button>
+    </div>
+    <div class="slider-grid">
+      <label class="slider-label" for="lightX">Point Light X <span id="lightXValue">0.00</span></label>
+      <input id="lightX" type="range" min="-6" max="6" step="0.1" value="2.8">
+      <label class="slider-label" for="lightY">Point Light Y <span id="lightYValue">0.00</span></label>
+      <input id="lightY" type="range" min="0.5" max="6" step="0.1" value="2.4">
+      <label class="slider-label" for="lightZ">Point Light Z <span id="lightZValue">0.00</span></label>
+      <input id="lightZ" type="range" min="-6" max="6" step="0.1" value="0.0">
+      <label class="slider-label" for="lightR">Light Red <span id="lightRValue">0.00</span></label>
+      <input id="lightR" type="range" min="0" max="1" step="0.01" value="1.0">
+      <label class="slider-label" for="lightG">Light Green <span id="lightGValue">0.00</span></label>
+      <input id="lightG" type="range" min="0" max="1" step="0.01" value="0.95">
+      <label class="slider-label" for="lightB">Light Blue <span id="lightBValue">0.00</span></label>
+      <input id="lightB" type="range" min="0" max="1" step="0.01" value="0.82">
+    </div>
+  </main>
+
+  <script src="./lib/webgl-utils.js"></script>
+  <script src="./lib/webgl-debug.js"></script>
+  <script src="./lib/cuon-utils.js"></script>
+  <script src="./Matrix4.js"></script>
+  <script src="./Cube.js"></script>
+  <script src="./Sphere.js"></script>
+  <script src="./Model.js"></script>
+  <script src="./camera.js"></script>
+  <script src="./World.js"></script>
+</body>
+</html>
