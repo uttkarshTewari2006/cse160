@@ -19,4 +19,8 @@ The wow feature is an interactive launch sequence: pressing Launch animates the 
 
 ## Run
 
-Serve the folder with a local web server, then open `index.html`. ES module imports and OBJ loading work best through a server instead of directly opening the file.
+Serve the folder with a local web server, then open `index.html`. ES module imports, textures, skybox faces, and OBJ loading should be run through a server instead of directly opening the file.
+
+On Windows, double-click `run_server.bat`, then open:
+
+`http://127.0.0.1:8000/index.html`
