@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assignment 5: Three.js Harbor Launch</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="scene-shell">
+      <canvas id="three-canvas">
+        Please use a browser that supports canvas.
+      </canvas>
+      <aside class="hud" aria-label="Scene notes">
+        <h1>Assignment 5: Three.js Harbor Launch</h1>
+        <p><strong>Note to TA:</strong> The wow point is an interactive launch sequence. Press Launch to raise the textured OBJ drone, spin its rotors, brighten the pad lights, and animate scanning rings.</p>
+        <div class="hud-row">
+          <button id="launchButton" type="button">Launch</button>
+          <button id="resetButton" type="button">Reset</button>
+        </div>
+        <p class="small">Mouse drag rotates the perspective camera, scroll zooms, and right-drag pans with OrbitControls.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="./World.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+newmtl Hull
+Ka 0.8 0.8 0.8
+Kd 0.86 0.89 0.91
+Ks 0.35 0.35 0.35
+Ns 80
+map_Kd ../textures/hull.svg
+
+newmtl Window
+Ka 0.2 0.4 0.5
+Kd 0.42 0.78 0.95
+Ks 0.7 0.8 0.9
+Ns 120
+map_Kd ../textures/window.svg
+
+newmtl Rotor
+Ka 0.1 0.1 0.1
+Kd 0.08 0.1 0.11
+Ks 0.5 0.5 0.5
+Ns 60
