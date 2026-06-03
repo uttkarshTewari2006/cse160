@@ -1,5 +1,5 @@
 var canvas = document.querySelector("#three-canvas");
-var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false, powerPreference: "low-power" });
 renderer.setPixelRatio(1);
 renderer.shadowMap.enabled = false;
 
@@ -9,7 +9,7 @@ camera.position.set(18, 11, -20);
 
 var controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 2.2, 0);
-controls.enableDamping = true;
+controls.enableDamping = false;
 controls.maxPolarAngle = Math.PI * 0.48;
 controls.minDistance = 8;
 controls.maxDistance = 55;
@@ -22,11 +22,12 @@ var droneRotors = [];
 var launchActive = false;
 var launchStart = 0;
 var lastTimeSeconds = 0;
+var lastFrameTime = 0;
 var padPointLight;
 var spotLight;
 
 function makeCanvasTexture(draw, repeatX, repeatY) {
-  var size = 128;
+  var size = 64;
   var textureCanvas = document.createElement("canvas");
   textureCanvas.width = size;
   textureCanvas.height = size;
@@ -143,7 +144,7 @@ var materials = {
   buoyWhite: new THREE.MeshStandardMaterial({ color: 0xf1efe6, roughness: 0.42 }),
   beacon: new THREE.MeshStandardMaterial({ color: 0xffd37a, emissive: 0xff8c2b, emissiveIntensity: 0.75 }),
   ring: new THREE.MeshStandardMaterial({ color: 0x50c8d8, emissive: 0x1c98c1, emissiveIntensity: 0.45 }),
-  glass: new THREE.MeshPhysicalMaterial({ color: 0x8ed7ff, opacity: 0.62, transparent: true, roughness: 0.08, metalness: 0.05 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x8ed7ff, opacity: 0.62, transparent: true, roughness: 0.18, metalness: 0.05 }),
   droneHull: new THREE.MeshStandardMaterial({ map: textures.hull, roughness: 0.48, metalness: 0.25 })
 };
 
@@ -253,72 +254,70 @@ function buildHarbor() {
   animatedObjects.push({ mesh: antenna, speed: 0.6, offset: 2.1 });
 }
 
+function makeTriangleGeometry(vertices, indices, uvs) {
+  var positions = [];
+  var textureCoords = [];
+  indices.forEach(function(face) {
+    face.forEach(function(index, corner) {
+      var vertex = vertices[index];
+      positions.push(vertex[0], vertex[1], vertex[2]);
+      var uv = uvs && uvs[corner] ? uvs[corner] : [0, 0];
+      textureCoords.push(uv[0], uv[1]);
+    });
+  });
+  var geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(textureCoords, 2));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function loadDroneModel() {
-  // The assignment model is also saved in assets/models. It is embedded here so
-  // Chrome can run the project directly from file:// without CORS failures.
-  var mtlSource = "newmtl Hull\nKd 0.86 0.89 0.91\nnewmtl Window\nKd 0.42 0.78 0.95\nnewmtl Rotor\nKd 0.08 0.1 0.11\n";
-  var objSource = [
-    "mtllib harbor-drone.mtl",
-    "o TexturedHarborDrone",
-    "g HullBody",
-    "usemtl Hull",
-    "v -1.4 0.0 -0.7", "v 1.4 0.0 -0.7", "v 1.4 0.0 0.7", "v -1.4 0.0 0.7",
-    "v -1.0 0.7 -0.48", "v 1.0 0.7 -0.48", "v 1.0 0.7 0.48", "v -1.0 0.7 0.48",
-    "vt 0 0", "vt 1 0", "vt 1 1", "vt 0 1",
-    "f 1/1 2/2 3/3", "f 1/1 3/3 4/4", "f 5/1 8/4 7/3", "f 5/1 7/3 6/2",
-    "f 1/1 5/4 6/3", "f 1/1 6/3 2/2", "f 2/1 6/4 7/3", "f 2/1 7/3 3/2",
-    "f 3/1 7/4 8/3", "f 3/1 8/3 4/2", "f 4/1 8/4 5/3", "f 4/1 5/3 1/2",
-    "g CockpitWindow", "usemtl Window",
-    "v -0.52 0.72 -0.5", "v 0.52 0.72 -0.5", "v 0.34 1.02 -0.2", "v -0.34 1.02 -0.2",
-    "f 9/1 10/2 11/3", "f 9/1 11/3 12/4",
-    "g Wings", "usemtl Hull",
-    "v -1.1 0.26 -0.56", "v -3.1 0.2 -1.0", "v -2.82 0.2 -0.36", "v -1.1 0.26 -0.15",
-    "v -1.1 0.26 0.15", "v -2.82 0.2 0.36", "v -3.1 0.2 1.0", "v -1.1 0.26 0.56",
-    "v 1.1 0.26 -0.56", "v 3.1 0.2 -1.0", "v 2.82 0.2 -0.36", "v 1.1 0.26 -0.15",
-    "v 1.1 0.26 0.15", "v 2.82 0.2 0.36", "v 3.1 0.2 1.0", "v 1.1 0.26 0.56",
-    "f 13/1 14/2 15/3", "f 13/1 15/3 16/4", "f 17/1 18/2 19/3", "f 17/1 19/3 20/4",
-    "f 21/1 24/4 23/3", "f 21/1 23/3 22/2", "f 25/1 28/4 27/3", "f 25/1 27/3 26/2",
-    "g RotorFrontLeft", "usemtl Rotor",
-    "v -2.85 0.34 -0.85", "v -2.0 0.34 -0.85", "v -2.0 0.34 -0.73", "v -2.85 0.34 -0.73",
-    "v -2.48 0.34 -1.18", "v -2.36 0.34 -1.18", "v -2.36 0.34 -0.4", "v -2.48 0.34 -0.4",
-    "f 29/1 30/2 31/3", "f 29/1 31/3 32/4", "f 33/1 34/2 35/3", "f 33/1 35/3 36/4",
-    "g RotorFrontRight", "usemtl Rotor",
-    "v 2.0 0.34 -0.85", "v 2.85 0.34 -0.85", "v 2.85 0.34 -0.73", "v 2.0 0.34 -0.73",
-    "v 2.36 0.34 -1.18", "v 2.48 0.34 -1.18", "v 2.48 0.34 -0.4", "v 2.36 0.34 -0.4",
-    "f 37/1 38/2 39/3", "f 37/1 39/3 40/4", "f 41/1 42/2 43/3", "f 41/1 43/3 44/4",
-    "g RotorBackLeft", "usemtl Rotor",
-    "v -2.85 0.34 0.73", "v -2.0 0.34 0.73", "v -2.0 0.34 0.85", "v -2.85 0.34 0.85",
-    "v -2.48 0.34 0.4", "v -2.36 0.34 0.4", "v -2.36 0.34 1.18", "v -2.48 0.34 1.18",
-    "f 45/1 48/4 47/3", "f 45/1 47/3 46/2", "f 49/1 52/4 51/3", "f 49/1 51/3 50/2",
-    "g RotorBackRight", "usemtl Rotor",
-    "v 2.0 0.34 0.73", "v 2.85 0.34 0.73", "v 2.85 0.34 0.85", "v 2.0 0.34 0.85",
-    "v 2.36 0.34 0.4", "v 2.48 0.34 0.4", "v 2.48 0.34 1.18", "v 2.36 0.34 1.18",
-    "f 53/1 56/4 55/3", "f 53/1 55/3 54/2", "f 57/1 60/4 59/3", "f 57/1 59/3 58/2"
-  ].join("\n");
+  // Textured custom model built from the same OBJ-style vertex data saved in assets/models.
+  // This avoids parser/download overhead on GitHub Pages and still runs from file://.
+  var bodyVertices = [
+    [-1.4, 0, -0.7], [1.4, 0, -0.7], [1.4, 0, 0.7], [-1.4, 0, 0.7],
+    [-1, 0.7, -0.48], [1, 0.7, -0.48], [1, 0.7, 0.48], [-1, 0.7, 0.48]
+  ];
+  var bodyFaces = [
+    [0, 1, 2], [0, 2, 3], [4, 7, 6], [4, 6, 5],
+    [0, 4, 5], [0, 5, 1], [1, 5, 6], [1, 6, 2],
+    [2, 6, 7], [2, 7, 3], [3, 7, 4], [3, 4, 0]
+  ];
+  var wingVertices = [
+    [-1.1, 0.26, -0.56], [-3.1, 0.2, -1.0], [-2.82, 0.2, -0.36], [-1.1, 0.26, -0.15],
+    [-1.1, 0.26, 0.15], [-2.82, 0.2, 0.36], [-3.1, 0.2, 1.0], [-1.1, 0.26, 0.56],
+    [1.1, 0.26, -0.56], [3.1, 0.2, -1.0], [2.82, 0.2, -0.36], [1.1, 0.26, -0.15],
+    [1.1, 0.26, 0.15], [2.82, 0.2, 0.36], [3.1, 0.2, 1.0], [1.1, 0.26, 0.56]
+  ];
+  var wingFaces = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7], [8, 11, 10], [8, 10, 9], [12, 15, 14], [12, 14, 13]];
+  var faceUvs = [[0, 0], [1, 0], [1, 1]];
 
-  var parsedMaterials = new THREE.MTLLoader().parse(mtlSource, "");
-  parsedMaterials.preload();
-
-  drone = new THREE.OBJLoader().parse(objSource);
+  drone = new THREE.Group();
   droneRotors = [];
   drone.name = "textured loaded OBJ harbor drone";
+  drone.add(new THREE.Mesh(makeTriangleGeometry(bodyVertices, bodyFaces, faceUvs), materials.droneHull));
+  drone.add(new THREE.Mesh(makeTriangleGeometry(wingVertices, wingFaces, faceUvs), materials.droneHull));
+
+  var windowGeometry = makeTriangleGeometry(
+    [[-0.52, 0.72, -0.5], [0.52, 0.72, -0.5], [0.34, 1.02, -0.2], [-0.34, 1.02, -0.2]],
+    [[0, 1, 2], [0, 2, 3]],
+    faceUvs
+  );
+  drone.add(new THREE.Mesh(windowGeometry, materials.glass));
+
+  [[-2.42, 0.34, -0.79], [2.42, 0.34, -0.79], [-2.42, 0.34, 0.79], [2.42, 0.34, 0.79]].forEach(function(position) {
+    var rotor = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.16), materials.darkSteel);
+    rotor.position.set(position[0], position[1], position[2]);
+    var cross = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.9), materials.darkSteel);
+    rotor.add(cross);
+    drone.add(rotor);
+    droneRotors.push(rotor);
+  });
+
   drone.position.set(0, 4.0, 0);
   drone.scale.set(1.7, 1.7, 1.7);
   drone.rotation.y = Math.PI / 4;
-  drone.traverse(function(child) {
-    if (child.isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
-      if (child.name.indexOf("Window") !== -1) {
-        child.material = materials.glass;
-      } else if (child.name.indexOf("Rotor") !== -1) {
-        child.material = materials.darkSteel;
-        droneRotors.push(child);
-      } else {
-        child.material = materials.droneHull;
-      }
-    }
-  });
   scene.add(drone);
 }
 
@@ -371,13 +370,18 @@ function resizeRendererToDisplaySize() {
   var height = canvas.clientHeight;
   var needsResize = canvas.width !== width || canvas.height !== height;
   if (needsResize) {
-    renderer.setSize(width, height, false);
+    renderer.setSize(Math.floor(width * 0.75), Math.floor(height * 0.75), false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   }
 }
 
 function render(time) {
+  if (time - lastFrameTime < 33) {
+    requestAnimationFrame(render);
+    return;
+  }
+  lastFrameTime = time;
   resizeRendererToDisplaySize();
   animate(time * 0.001);
   controls.update();
