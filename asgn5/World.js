@@ -1,8 +1,7 @@
 var canvas = document.querySelector("#three-canvas");
 var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = false;
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(55, 2, 0.1, 300);
@@ -19,13 +18,15 @@ var animatedObjects = [];
 var buoys = [];
 var scanRings = [];
 var drone = null;
+var droneRotors = [];
 var launchActive = false;
 var launchStart = 0;
+var lastTimeSeconds = 0;
 var padPointLight;
 var spotLight;
 
 function makeCanvasTexture(draw, repeatX, repeatY) {
-  var size = 256;
+  var size = 128;
   var textureCanvas = document.createElement("canvas");
   textureCanvas.width = size;
   textureCanvas.height = size;
@@ -147,7 +148,7 @@ var materials = {
 };
 
 function addMesh(mesh, castShadow, receiveShadow) {
-  mesh.castShadow = castShadow !== false;
+  mesh.castShadow = false;
   mesh.receiveShadow = receiveShadow !== false;
   scene.add(mesh);
   return mesh;
@@ -161,14 +162,14 @@ function createBox(name, size, position, material) {
 }
 
 function createCylinder(name, radiusTop, radiusBottom, height, position, material, segments) {
-  var mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, height, segments || 32), material);
+  var mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, height, segments || 16), material);
   mesh.name = name;
   mesh.position.copy(position);
   return addMesh(mesh);
 }
 
 function createSphere(name, radius, position, material, width, height) {
-  var mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, width || 32, height || 16), material);
+  var mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, width || 20, height || 10), material);
   mesh.name = name;
   mesh.position.copy(position);
   return addMesh(mesh);
@@ -180,23 +181,15 @@ function setupLights() {
 
   var directional = new THREE.DirectionalLight(0xfff0d8, 2.2);
   directional.position.set(-12, 18, 9);
-  directional.castShadow = true;
-  directional.shadow.mapSize.set(2048, 2048);
-  directional.shadow.camera.left = -28;
-  directional.shadow.camera.right = 28;
-  directional.shadow.camera.top = 28;
-  directional.shadow.camera.bottom = -28;
   scene.add(directional);
 
   padPointLight = new THREE.PointLight(0x5ee0ff, 2.3, 28, 1.8);
   padPointLight.position.set(0, 4.8, 0);
-  padPointLight.castShadow = true;
   scene.add(padPointLight);
 
   spotLight = new THREE.SpotLight(0xffdf9b, 4.6, 36, Math.PI / 6, 0.45, 1.2);
   spotLight.position.set(-7, 8, 8);
   spotLight.target.position.set(0, 1, 0);
-  spotLight.castShadow = true;
   scene.add(spotLight);
   scene.add(spotLight.target);
 }
@@ -208,17 +201,17 @@ function buildHarbor() {
   createBox("control shed", new THREE.Vector3(4.6, 2.2, 3.4), new THREE.Vector3(-9.2, 1.55, -4.9), materials.darkSteel);
   createBox("glass observation room", new THREE.Vector3(3.3, 1.35, 2.6), new THREE.Vector3(-9.2, 3.35, -4.9), materials.glass);
 
-  var pad = createCylinder("round launch pad", 5.2, 5.2, 0.38, new THREE.Vector3(0, 0.72, 0), materials.concrete, 64);
+  var pad = createCylinder("round launch pad", 5.2, 5.2, 0.38, new THREE.Vector3(0, 0.72, 0), materials.concrete, 40);
   pad.rotation.y = Math.PI / 8;
 
-  var ring1 = new THREE.Mesh(new THREE.TorusGeometry(3.75, 0.08, 12, 96), materials.ring);
+  var ring1 = new THREE.Mesh(new THREE.TorusGeometry(3.75, 0.08, 8, 48), materials.ring);
   ring1.name = "animated scanning ring inner";
   ring1.position.set(0, 0.98, 0);
   ring1.rotation.x = Math.PI / 2;
   addMesh(ring1);
   scanRings.push(ring1);
 
-  var ring2 = new THREE.Mesh(new THREE.TorusGeometry(4.65, 0.08, 12, 96), materials.ring);
+  var ring2 = new THREE.Mesh(new THREE.TorusGeometry(4.65, 0.08, 8, 48), materials.ring);
   ring2.name = "animated scanning ring outer";
   ring2.position.set(0, 1.02, 0);
   ring2.rotation.x = Math.PI / 2;
@@ -307,6 +300,7 @@ function loadDroneModel() {
   parsedMaterials.preload();
 
   drone = new THREE.OBJLoader().parse(objSource);
+  droneRotors = [];
   drone.name = "textured loaded OBJ harbor drone";
   drone.position.set(0, 4.0, 0);
   drone.scale.set(1.7, 1.7, 1.7);
@@ -319,6 +313,7 @@ function loadDroneModel() {
         child.material = materials.glass;
       } else if (child.name.indexOf("Rotor") !== -1) {
         child.material = materials.darkSteel;
+        droneRotors.push(child);
       } else {
         child.material = materials.droneHull;
       }
@@ -328,8 +323,11 @@ function loadDroneModel() {
 }
 
 function animate(timeSeconds) {
+  var deltaSeconds = Math.min(timeSeconds - lastTimeSeconds, 0.05);
+  lastTimeSeconds = timeSeconds;
+
   animatedObjects.forEach(function(item) {
-    item.mesh.rotation.y += 0.018 * item.speed;
+    item.mesh.rotation.y += deltaSeconds * item.speed * 0.9;
     if (item.mesh.material.emissiveIntensity !== undefined) {
       item.mesh.material.emissiveIntensity = 0.55 + Math.sin(timeSeconds * item.speed + item.offset) * 0.25;
     }
@@ -341,7 +339,7 @@ function animate(timeSeconds) {
   });
 
   scanRings.forEach(function(ring, index) {
-    ring.rotation.z += 0.01 + index * 0.006;
+    ring.rotation.z += deltaSeconds * (0.65 + index * 0.35);
     var pulse = 1 + Math.sin(timeSeconds * 2.2 + index * Math.PI) * 0.035;
     ring.scale.set(pulse, pulse, pulse);
   });
@@ -349,9 +347,9 @@ function animate(timeSeconds) {
   padPointLight.intensity = launchActive ? 4.2 + Math.sin(timeSeconds * 7) * 0.5 : 2.3 + Math.sin(timeSeconds * 2) * 0.25;
 
   if (drone) {
-    drone.rotation.y += launchActive ? 0.028 : 0.006;
-    drone.traverse(function(child) {
-      if (child.name.indexOf("Rotor") !== -1) child.rotation.y += launchActive ? 0.5 : 0.08;
+    drone.rotation.y += deltaSeconds * (launchActive ? 1.6 : 0.35);
+    droneRotors.forEach(function(rotor) {
+      rotor.rotation.y += deltaSeconds * (launchActive ? 28 : 4);
     });
 
     if (launchActive) {
@@ -389,9 +387,13 @@ function render(time) {
 
 function bindButtons() {
   document.querySelector("#launchButton").addEventListener("click", function() {
+    if (launchActive) return;
     launchActive = true;
     launchStart = performance.now() * 0.001;
-    if (drone) drone.position.set(0, 4.0, 0);
+    if (drone) {
+      drone.position.set(0, 4.0, 0);
+      drone.rotation.set(0, Math.PI / 4, 0);
+    }
   });
 
   document.querySelector("#resetButton").addEventListener("click", function() {
@@ -407,9 +409,18 @@ function bindButtons() {
   });
 }
 
+function maybeAutoLaunchForTest() {
+  if (window.location.search.indexOf("launch=1") !== -1) {
+    setTimeout(function() {
+      document.querySelector("#launchButton").click();
+    }, 300);
+  }
+}
+
 makeSkybox();
 setupLights();
 buildHarbor();
 loadDroneModel();
 bindButtons();
+maybeAutoLaunchForTest();
 requestAnimationFrame(render);
